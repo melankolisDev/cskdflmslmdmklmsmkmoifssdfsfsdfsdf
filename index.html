@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sosmed Downloader</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+            margin-top: 30px; margin-bottom: 30px; padding: 15px;
+            background-color: #f0f2f5; color: #1c1e21;
+            box-sizing: border-box; min-height: 100vh;
+        }
+        .container { 
+            width: 100%; max-width: 580px; 
+            padding: 25px; 
+            border: 1px solid #dddfe2; border-radius: 8px; 
+            background-color: #ffffff; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05), 0 8px 16px rgba(0,0,0,0.05); 
+        }
+        h1 { 
+            color: #1877f2; font-size: 24px; text-align: center; margin-bottom: 25px;
+        }
+        input[type="url"] { 
+            width: 100%; padding: 12px 15px; margin-bottom: 15px; 
+            border: 1px solid #ccd0d5; border-radius: 6px; font-size: 16px;
+            box-sizing: border-box; 
+        }
+        input[type="url"]:focus {
+            border-color: #1877f2; box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2); outline: none;
+        }
+        button[type="submit"] { 
+            padding: 12px 20px; background-color: #1877f2; color: white; 
+            border: none; cursor: pointer; border-radius: 6px; 
+            font-size: 16px; font-weight: bold; width: 100%;
+            transition: background-color 0.2s ease-in-out;
+        }
+        button[type="submit"]:hover:not(:disabled) { background-color: #166fe5; }
+        button[type="submit"]:disabled { background-color: #a0c3f1; cursor: not-allowed; }
+        
+        #result a { 
+            display: block; margin-top: 20px; padding: 12px 15px; 
+            background-color: #42b72a; color: white; 
+            text-decoration: none; text-align: center; border-radius: 6px; 
+            font-weight: bold; font-size: 16px; cursor: pointer;
+            transition: background-color 0.2s ease-in-out; word-break: break-all;
+        }
+        #result a:hover { background-color: #3aa822; }
+
+        .message-area { margin-top: 15px; }
+        .message {
+            padding: 10px 15px; border-radius: 6px; font-size: 14px;
+            text-align: center; line-height: 1.4;
+        }
+        #error-message { 
+            background-color: #ffebe8; border: 1px solid #ffc5bd; color: #c92a2a;
+            display: none;
+        }
+        #loading-message { 
+            color: #555; font-style: italic; display: none;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 0;
+    background-color: #0d8094;
+    color: #ffffff;
+            width: 1000px;
+    padding: 25px 20px;
+    text-align: center;
+    margin-top: 40px;
+    font-size: 1.2em;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+footer .developer-info {
+    margin: 0 0 10px 0;
+    font-weight: 500;
+}
+
+footer .social-links {
+    margin: 0;
+}
+
+footer .social-links a {
+    color: inherit;
+    text-decoration: none;
+    margin: 0 5px;
+    transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+footer .social-links a:hover {
+    color: #cce5ff;
+    text-decoration: underline;
+}
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1); width: 24px; height: 24px;
+            border-radius: 50%; border-left-color: #1877f2;
+            margin: 0 auto 8px auto; animation: spin 0.8s ease infinite;
+        }
+
+        @media (max-width: 768px) {
+            footer{
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ig & Tiktok Downloader</h1>
+        <form id="downloadForm">
+            <input type="url" id="videoUrlInput" name="url" placeholder="Paste Link Reel / Vt" required>
+            <button type="submit" id="submitButton">Download</button>
+        </form>
+        <div class="message-area">
+            <div id="loading-message" class="message">
+                <div class="spinner"></div>
+                <span id="loading-text">Loading...</span>
+            </div>
+            <div id="error-message" class="message">
+            </div>
+            <div id="result">
+            </div>
+        </div>
+    </div>
+    <footer>
+        <p class="developer-info">Developer Website: Panca Walendra Putra</p>
+        <p class="social-links">
+            See me at:
+            <a href="https://www.wa.me/6285215327903" target="_blank" rel="noopener noreferrer" style="text-decoration: underline;">Whatsapp</a>
+        </p>
+    </footer>
+
+    <script>
+        const downloadForm = document.getElementById('downloadForm');
+        const videoUrlInput = document.getElementById('videoUrlInput');
+        const submitButton = document.getElementById('submitButton');
+        const resultDiv = document.getElementById('result');
+        const errorMessageDiv = document.getElementById('error-message');
+        const loadingMessageDiv = document.getElementById('loading-message');
+        const loadingTextSpan = document.getElementById('loading-text');
+        
+        const backendBaseUrl = '/api'; // VPS sung chat Wa di footer
+
+        downloadForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const url = videoUrlInput.value.trim();
+
+            resultDiv.innerHTML = '';
+            errorMessageDiv.style.display = 'none';
+            errorMessageDiv.textContent = '';
+            
+            if (!url) {
+                showError('URL tidak boleh kosong.');
+                return;
+            }
+            try { new URL(url); } catch (_) {
+                showError('Format URL tidak valid. Pastikan menyertakan http/https.');
+                return;
+            }
+
+            let endpoint = '';
+            if (url.includes('instagram.com')) {
+                endpoint = `${backendBaseUrl}/download-reel`;
+            } else if (url.includes('tiktok.com')) {
+                endpoint = `${backendBaseUrl}/download-tiktok`;
+            } else {
+                showError('URL tidak dikenal. Harap masukkan URL Instagram Reel atau TikTok.');
+                return;
+            }
+
+            setLoadingState(true, 'Memvalidasi URL...');
+
+            try {
+                setLoadingState(true, 'Menghubungi server untuk info video...');
+                const apiUrlResponse = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const apiData = await apiUrlResponse.json();
+
+                if (!apiUrlResponse.ok || !apiData.video_url) {
+                    const errorMsg = apiData.error || `Gagal mendapatkan info video (status ${apiUrlResponse.status}).`;
+                    showError(errorMsg);
+                    return;
+                }
+                
+                const videoServeUrl = apiData.video_url;
+                const suggestedFilename = apiData.filename || "video_unduhan.mp4";
+
+                setLoadingState(true, 'Mengambil file video dari server...');
+                
+                const videoFileResponse = await fetch(videoServeUrl, { method: 'GET' });
+
+                if (!videoFileResponse.ok) {
+                    let errorFromServer = `Gagal mengunduh file video (status ${videoFileResponse.status}).`;
+                    try {
+                        const errorText = await videoFileResponse.text();
+                        if (errorText) errorFromServer += ` Pesan: ${errorText.substring(0,150)}`;
+                    } catch (e) { }
+                    showError(errorFromServer);
+                    return;
+                }
+
+                setLoadingState(true, 'Memproses file video...');
+                const videoBlob = await videoFileResponse.blob();
+                const blobUrl = URL.createObjectURL(videoBlob);
+
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = suggestedFilename;
+                a.textContent = `Download: ${suggestedFilename} (${formatBytes(videoBlob.size)})`;
+                
+                resultDiv.appendChild(a);
+                a.click(); 
+
+                setTimeout(() => {
+                    URL.revokeObjectURL(blobUrl);
+                }, 1000 * 15);
+
+                setLoadingState(false);
+
+            } catch (err) {
+                console.error("Kesalahan proses:", err);
+                let networkErrorMsg = 'Terjadi kesalahan jaringan';
+                if (err instanceof TypeError && err.message.toLowerCase().includes('failed to fetch')) {
+                     networkErrorMsg = 'Server sedang Modar, Chat WA untuk menyuruh developer menyalakan Server';
+                } else if (err.message) {
+                     networkErrorMsg = `Kesalahan: ${err.message.substring(0,200)}`;
+                }
+                showError(networkErrorMsg);
+            } finally {
+                if (loadingMessageDiv.style.display === 'block') {
+                    setLoadingState(false);
+                }
+            }
+        });
+
+        function setLoadingState(isLoading, message = 'Memproses...') {
+            if (isLoading) {
+                loadingTextSpan.textContent = message;
+                loadingMessageDiv.style.display = 'block';
+                submitButton.disabled = true;
+                videoUrlInput.disabled = true;
+                errorMessageDiv.style.display = 'none';
+                resultDiv.innerHTML = '';
+            } else {
+                loadingMessageDiv.style.display = 'none';
+                submitButton.disabled = false;
+                videoUrlInput.disabled = false;
+            }
+        }
+
+        function showError(message) {
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.style.display = 'block';
+            setLoadingState(false);
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+         window.addEventListener('pagehide', () => {
+             const links = resultDiv.querySelectorAll('a');
+             links.forEach(link => {
+                 if (link.href && link.href.startsWith('blob:')) {
+                     URL.revokeObjectURL(link.href);
+                 }
+             });
+         });
+    </script>
+</body>
+</html>
