@@ -1,7 +1,7 @@
 // functions/api/[[path]].js
 
 // URL backend VPS Anda yang asli. Ini TIDAK akan terlihat oleh klien.
-const ACTUAL_BACKEND_URL = "https://bendnnbvelux.ap-southeast-1.clawcloudrun.com";
+const ACTUAL_BACKEND_URL = "https://cntbmcasaqkv.ap-southeast-1.clawcloudrun.com";
 
 export async function onRequest(context) {
   const { request, params } = context;
